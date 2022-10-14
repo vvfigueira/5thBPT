@@ -18,11 +18,14 @@ yvec = np.linspace(0, lado, ndiv)
 
 theta = np.pi / 4
 
-def aharmonic(A, B, m, n):
-    return (A*np.cos(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado)+B*np.sin(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado))*m*np.pi*np.cos(m*np.pi*pos[0]/lado)*np.sin(n*np.pi*pos[1]/lado)/lado
+def wave(A, B, m, n, xpos, ypos):
+    return (A*np.cos(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado)+B*np.sin(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado))*np.sin(m*np.pi*xpos/lado)*np.sin(n*np.pi*ypos/lado)
 
-def bharmonic(A, B, m, n):
-    return (A*np.cos(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado)+B*np.sin(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado))*n*np.pi*np.sin(m*np.pi*pos[0]/lado)*np.cos(n*np.pi*pos[1]/lado)/lado
+def aharmonic(A, B, m, n, xpos, ypos):
+    return (A*np.cos(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado)+B*np.sin(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado))*m*np.pi*np.cos(m*np.pi*xpos/lado)*np.sin(n*np.pi*ypos/lado)/lado
+
+def bharmonic(A, B, m, n, xpos, ypos):
+    return (A*np.cos(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado)+B*np.sin(vel*np.pi*np.sqrt((m*m) + (n*n))*tempo/lado))*n*np.pi*np.sin(m*np.pi*xpos/lado)*np.cos(n*np.pi*ypos/lado)/lado
 
 def y(a, b, th):
     return 2*np.cos(b)*np.cos(b)*np.cos(th+a)*np.cos(a)/(1-np.sin(a)*np.sin(a)*np.sin(b)*np.sin(b)) - np.cos(th)
@@ -30,8 +33,12 @@ def y(a, b, th):
 def x(a, b, th):
     return -2*np.sin(b)*np.cos(b)*np.cos(th+a)*np.cos(a)/(1-np.sin(a)*np.sin(a)*np.sin(b)*np.sin(b))
 
-alpha = np.arctan((aharmonic(1., 1., 1, 1)) + aharmonic(1., 1., 3, 2))
-beta = np.arctan((bharmonic(1., 1., 1, 1)) + bharmonic(1., 1., 3, 2))
+alt = wave(0.05, 0.05, 2, 1, pos[0], pos[1])# + wave(1., 1., 3, 2, pos[0], pos[1])
+
+print(np.max(alt))
+
+alpha = np.arctan((aharmonic(0.05, 0.05, 2, 1, pos[0]+alt/np.tan(theta), pos[1])))# + aharmonic(1., 1., 3, 2, pos[0], pos[1]))
+beta = np.arctan((bharmonic(0.05, 0.05, 2, 1, pos[0]+alt/np.tan(theta), pos[1])))# + bharmonic(1., 1., 3, 2, pos[0], pos[1]))
 
 xplot = x(alpha, beta, theta)
 yplot = y(alpha, beta, theta)
