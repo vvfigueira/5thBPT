@@ -2,14 +2,21 @@
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_odeiv2.h>
+#include 
 
 int func (double t, const double y[], double f[],
     void *params)
 {
     (void)(t); /* avoid unused parameter warning */
     double mu = *(double *)params;
-    f[0] = y[1];
-    f[1] = -y[0] - mu*y[1]*(y[0]*y[0] - 1);
+    f[0] = 3*A*y[6]*sinbeta-9*A*y[5]*cosalpha+g/a;
+    f[1] = y[5]*(omega^2-g/a)+3*A*cosalpha*(1-3*y[4]);
+    f[2] = y[6]*(omega^2-mb/i-omega*y[3]-omega^2i3/i1)+A*a^2*M/i1*sinbeta*(3*y[4]-1);
+    f[3] = omega*y[6]*y[2];
+    f[4] = y[0];
+    f[5] = y[1];
+    f[6] = y[2];
+    f[7] = y[3];
     return GSL_SUCCESS;
 }
 
