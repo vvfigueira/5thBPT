@@ -1,0 +1,1 @@
+g++ `root-config --libs` `gsl-config --libs` numsol.cpp -o num
