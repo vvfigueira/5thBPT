@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <fstream>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_odeiv2.h>
@@ -11,8 +10,6 @@
 #include "TAxis.h"
 #include "TPad.h"
 #include "TF1.h"
-#include "vector"
-#include <TLegend.h>
 
 struct p_type {
     double omega;
@@ -195,12 +192,11 @@ int jac (double t, const double y[], double *dfdy,
 int main (int argc, char** argv)
 {
 
-    double t0 = 0.0, t1 = 10.0, O0 = 0, O1 = 100, y[10], ti;
-    int divtemp = 1000, divO = 10, contpt, status;
+    double t0 = 0.0, t1 = 10.0, divtemp = 1000;
+    double O0 = 0, O1 = 100, divO = 100;
 
     std::string nome;
-    char * nomef;
-    
+    char *nomef;
     struct p_type parametros = {7300*2*TMath::Pi()/60, // omega
                                     9.8, // g
                                     0.02, // a
@@ -210,9 +206,9 @@ int main (int argc, char** argv)
                                     235, // A
                                     1000, // m'B
                                     0 // Omega
-    }; 
+    };
 
-    const double initval[10] = {0.0, // epsilon ponto
+    double y[10] = {0.0, // epsilon ponto
                         0.0, // theta ponto
                         parametros.omega/5, // phi ponto
                         0.0, // theta' ponto
@@ -222,11 +218,15 @@ int main (int argc, char** argv)
                         0.0, // phi
                         TMath::Pi()/10, // theta' 
                         0.0 // phi'
-    };
+    }; 
 
-    gsl_odeiv2_system sys = {func, jac, 10, &parametros};   
+    int contpt;
 
-    std::vector<TGraph*> Gvec;
+    gsl_odeiv2_system sys;
+    gsl_odeiv2_driver * d;
+
+    double ti;
+    int status;
 
     TCanvas *Princ = new TCanvas();
 
@@ -237,98 +237,69 @@ int main (int argc, char** argv)
 
     TMultiGraph *MG = new TMultiGraph();
 
-    TLegend *legend=new TLegend(0.6,0.65,0.88,0.85);
-    legend->SetTextFont(132);
-    legend->SetFillStyle(4000);
-    legend->SetBorderSize(0);
-    legend->SetTextSize(0.04);
-    
+    for(int k = 0; k < divO; k++){
 
-    for(int k = 0; k < divO; k++)
-    {
-
-        t0 = 0.0, t1 = 10.0;
-        
-        Gvec.push_back(new TGraph);
-
-        printf("Iteracao %i\n", k+1);
+        TGraph *Graph = new TGraph();
 
         contpt = 0;
 
-        for (int l = 0; l< 10; l++){y[l]=initval[l];};
+        parametros.Omega = 0;
 
-        parametros.Omega = (double)(O0+k*O1/divO);
+        sys = {func, jac, 10, &parametros};
 
-        gsl_odeiv2_driver * d=
-            gsl_odeiv2_driver_alloc_y_new (&sys, gsl_odeiv2_step_rk8pd, 1e-6, 1e-6, 0.0);
+        d =
+            gsl_odeiv2_driver_alloc_y_new (&sys, gsl_odeiv2_step_rk8pd, 1e-6, 1e-6, 0.0);  
 
-        for (int i = 0; i < divtemp; i++)
-        {
-            ti = i * t1 / (double )divtemp;
+        // printf ("Tempo  Epsilon  Theta  Theta'\n");
+        // printf ("%.5e %.5e %.5e %.5e\n", t0, y[5], y[6], y[8]);
+
+        for (int i = 1; i <= divtemp; i++)
+            {
+            ti = i * t1 / (double) divtemp;
 
             status = gsl_odeiv2_driver_apply (d, &t0, ti, y);
 
             if (status != GSL_SUCCESS)
-            {
+                {
                 printf ("error, return value = %d\n", status);
                 break;
+                }
+            // printf ("%.5e %.5e %.5e %.5e\n", t0, y[5], y[6], y[8]);
+
+            contpt = Graph->GetN();
+
+            Graph->SetPoint(contpt, t0, y[5]);
+
             }
 
-            printf ("%.5e %.5e %.5 %.5e\n", t0, y[5], y[6], y[8]);
+        Graph->SetMarkerStyle(kFullCircle);
+        Graph->SetMarkerColor(kBlack);
+        Graph->SetMarkerSize(0.7);
+        Graph->GetXaxis()->SetLabelFont(132);
+        Graph->GetXaxis()->SetTitleFont(132);
+        Graph->GetYaxis()->SetLabelFont(132);
+        Graph->GetYaxis()->SetTitleFont(132);
+        Graph->GetYaxis()->SetLabelSize(0.035);
+        Graph->GetYaxis()->SetTitleSize(0.035);
+        Graph->GetXaxis()->SetLabelSize(0.035);
+        Graph->GetXaxis()->SetTitleSize(0.035);
 
-            contpt = Gvec[k]->GetN();
+        Graph->GetXaxis()->SetLimits(0, t1);
+        Graph->GetYaxis()->SetMaxDigits(2);
+        Graph->GetXaxis()->SetTitle("Tempo #bf{[s]}");
+        Graph->GetYaxis()->SetTitle("Epsilon #bf{[m]}");
+        Princ->cd();
+        Graph->Draw("AP");
 
-            Gvec[k]->SetPoint(contpt, t0, y[9]);
-
-        }
-
-        Gvec[k]->SetMarkerStyle(kFullCircle);
-        Gvec[k]->SetMarkerColor(((k+1)%10) ? k+1 : 1 );
-        Gvec[k]->SetMarkerSize(0.65);
-
-        MG->Add(Gvec[k]);
-
-        nome = "Omega ";
-        nome = nome + (int)parametros.Omega;
+        nome = "Omega";
+        nome = nome + parametros.Omega;
+        nome = nome + ".pdf";
         nomef = &nome[0];
 
-        legend->AddEntry(Gvec[k], nomef, "p");
-    
+        Princ->Print(nomef);
+
         gsl_odeiv2_driver_free (d);
-
+        delete Graph;
     }
-
-    MG->GetXaxis()->SetLabelFont(132);
-    MG->GetXaxis()->SetTitleFont(132);
-    MG->GetYaxis()->SetLabelFont(132);
-    MG->GetYaxis()->SetTitleFont(132);
-    MG->GetYaxis()->SetLabelSize(0.035);
-    MG->GetYaxis()->SetTitleSize(0.035);
-    MG->GetXaxis()->SetLabelSize(0.035);
-    MG->GetXaxis()->SetTitleSize(0.035);
-
-    MG->GetXaxis()->SetLimits(0, t1);
-    MG->GetYaxis()->SetMaxDigits(2);
-    MG->GetXaxis()->SetTitle("Tempo #bf{[s]}");
-    MG->GetYaxis()->SetTitle("Epsilon #bf{[m]}");
-    Princ->cd();
-    MG->Draw("AP");
-    legend->SetY1(0.45);
-    legend->SetY2(0.85);
-    legend->SetX1(0.67);
-    legend->SetX2(0.97);
-    legend->Draw();
-
-    Princ->Print("Gp.pdf");
-
-    while (!Gvec.empty())
-    {
-        TGraph* f = Gvec.back();
-        Gvec.pop_back();
-        delete f;
-    }
-
-    delete MG, Princ;
-
     return 0;
 }
