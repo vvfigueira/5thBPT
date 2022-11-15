@@ -104,29 +104,29 @@ int jac (double t, const double y[], double *dfdy,
     gsl_matrix_set (m, 2, 4, 0.0);
     gsl_matrix_set (m, 2, 5, 9*A*TMath::Sin(y[7]-omega*t)/y[6]);
     gsl_matrix_set (m, 2, 6, 3*A*(1-3*y[5])*TMath::Sin(y[7]-omega*t)/(y[6]*y[6])+2*y[2]*y[1]/(y[6]*y[6]));
-    gsl_matrix_set (m, 2, 7, 0.0);
+    gsl_matrix_set (m, 2, 7, -3*A*(1-3*y[5])*TMath::Cos(y[7]-omega*t)/y[6]);
     gsl_matrix_set (m, 2, 8, 0.0);
     gsl_matrix_set (m, 2, 9, 0.0);
     gsl_matrix_set (m, 3, 0, 0.0);
     gsl_matrix_set (m, 3, 1, 0.0);
     gsl_matrix_set (m, 3, 2, 0.0);
-    gsl_matrix_set (m, 3, 3, 0.0);
-    gsl_matrix_set (m, 3, 4, 0.0);
-    gsl_matrix_set (m, 3, 5, 0.0);
+    gsl_matrix_set (m, 3, 3, -i3*y[4]*y[8]/i1);
+    gsl_matrix_set (m, 3, 4, 2*y[4]*y[8]-i3*y[3]*y[8]-2*i3*y[8]*y[4]/i1);
+    gsl_matrix_set (m, 3, 5, 3*A*M*a*a*TMath::Sin(y[9]-omega*t)/i1);
     gsl_matrix_set (m, 3, 6, 0.0);
     gsl_matrix_set (m, 3, 7, 0.0);
-    gsl_matrix_set (m, 3, 8, 0.0);
-    gsl_matrix_set (m, 3, 9, 0.0);
+    gsl_matrix_set (m, 3, 8, y[4]*y[4]-i3*y[4]*y[4]/i1-i3*y[4]*y[3]/i1-mb);
+    gsl_matrix_set (m, 3, 9, -A*M*a*a*(1-3*y[5])*TMath::Cos(y[9]-omega*t)/i1);
     gsl_matrix_set (m, 4, 0, 0.0);
     gsl_matrix_set (m, 4, 1, 0.0);
     gsl_matrix_set (m, 4, 2, 0.0);
-    gsl_matrix_set (m, 4, 3, 0.0);
-    gsl_matrix_set (m, 4, 4, 0.0);
-    gsl_matrix_set (m, 4, 5, 0.0);
+    gsl_matrix_set (m, 4, 3, -2*i1*y[4]/(y[8]*(i1+i3/2)));
+    gsl_matrix_set (m, 4, 4, -2*i1*y[3]/(y[8]*(i1+i3/2))+i3/(2*i1+i3));
+    gsl_matrix_set (m, 4, 5, A*M*a*a*3*TMath::Cos(y[9]-omega*t)/(y[8]*(i1+i3/2)));
     gsl_matrix_set (m, 4, 6, 0.0);
     gsl_matrix_set (m, 4, 7, 0.0);
-    gsl_matrix_set (m, 4, 8, 0.0);
-    gsl_matrix_set (m, 4, 9, 0.0);
+    gsl_matrix_set (m, 4, 8, -A*M*a*a*(3*y[5]-1)*TMath::Cos(y[9]-omega*t)/(y[8]*y[8]*(i1+i3/2))+2*i1*y[4]*y[3]/(y[8]*y[8]*(i1+i3/2)));
+    gsl_matrix_set (m, 4, 9, -A*M*a*a*(3*y[5]-1)*TMath::Sin(y[9]-omega*t)/(y[8]*(i1+i3/2)));
     gsl_matrix_set (m, 5, 0, 1.0);
     gsl_matrix_set (m, 5, 1, 0.0);
     gsl_matrix_set (m, 5, 2, 0.0);
@@ -178,11 +178,11 @@ int jac (double t, const double y[], double *dfdy,
     gsl_matrix_set (m, 9, 8, 0.0);
     gsl_matrix_set (m, 9, 9, 0.0);
 
-    dfdt[0] = 0.0;
-    dfdt[1] = 0.0;
-    dfdt[2] = 0.0;
-    dfdt[3] = 0.0;
-    dfdt[4] = 0.0;
+    dfdt[0] = -omega*9*A*y[6]*TMath::Sin(y[7]-omega*t)-3*omega*A*y[8]*TMath::Cos(y[9]-omega*t);
+    dfdt[1] = -3*omega*A*(3*y[5]-1)*TMath::Sin(y[7]-omega*t);
+    dfdt[2] = -3*omega*A*(1-3*y[5])*TMath::Cos(y[7]-omega*t)/y[6];
+    dfdt[3] = A*M*a*a*(1-3*y[5])*TMath::Cos(y[9]-omega*t)*omega/i1;
+    dfdt[4] = A*M*a*a*(3*y[5]-1)*TMath::Sin(y[9]-omega*t)*omega/(y[8]*(i1+i3/2));
     dfdt[5] = 0.0;
     dfdt[6] = 0.0;
     dfdt[7] = 0.0;
@@ -195,11 +195,16 @@ int jac (double t, const double y[], double *dfdy,
 int main (int argc, char** argv)
 {
 
-    double t0 = 0.0, t1 = 10.0, O0 = 0, O1 = 100, y[10], ti;
-    int divtemp = 1000, divO = 10, contpt, status;
+    double t0 = 0.0, t1 = 10.0, O0 = 0.0, O1 = 100.0, y[10], ti;
+    int divtemp = 1000, divO = 1, contpt, status;
 
     std::string nome;
     char * nomef;
+
+    std::ofstream ofs;
+    ofs.open("Data.tsv", std::ofstream::out | std::ofstream::trunc);
+    ofs.close();
+    std::ofstream eFile ("Data.tsv" ,std::ofstream::app);
     
     struct p_type parametros = {7300*2*TMath::Pi()/60, // omega
                                     9.8, // g
@@ -208,15 +213,15 @@ int main (int argc, char** argv)
                                     7.5e-3 * 0.01 * 0.01/6, // i1
                                     7.5e-3 * 0.01 * 0.01/6, // i3
                                     235, // A
-                                    1000, // m'B
-                                    0 // Omega
+                                    0.0, // m'B
+                                    0.0 // Omega
     }; 
 
     const double initval[10] = {0.0, // epsilon ponto
                         0.0, // theta ponto
-                        parametros.omega/5, // phi ponto
+                        0.0, //parametros.omega/5, // phi ponto
                         0.0, // theta' ponto
-                        parametros.omega/5, // phi' ponto
+                        0.0, //parametros.omega/5, // phi' ponto
                         0.0, // epsilon
                         TMath::Pi()/100, // theta
                         0.0, // phi
@@ -226,18 +231,36 @@ int main (int argc, char** argv)
 
     gsl_odeiv2_system sys = {func, jac, 10, &parametros};   
 
-    std::vector<TGraph*> Gvec;
+    std::vector<TGraph*> EpGvec, TGvec, TpGvec;
 
-    TCanvas *Princ = new TCanvas();
+    TCanvas *EpCv = new TCanvas();
 
-    Princ->SetTickx();
-    Princ->SetTicky();
-    Princ->SetGridx();
-    Princ->SetGridy();
+    EpCv->SetTickx();
+    EpCv->SetTicky();
+    EpCv->SetGridx();
+    EpCv->SetGridy();
 
-    TMultiGraph *MG = new TMultiGraph();
+    TCanvas *TCv = new TCanvas();
 
-    TLegend *legend=new TLegend(0.6,0.65,0.88,0.85);
+    TCv->SetTickx();
+    TCv->SetTicky();
+    TCv->SetGridx();
+    TCv->SetGridy();
+
+    TCanvas *TpCv = new TCanvas();
+
+    TpCv->SetTickx();
+    TpCv->SetTicky();
+    TpCv->SetGridx();
+    TpCv->SetGridy();
+
+    TMultiGraph *EpMg = new TMultiGraph();
+
+    TMultiGraph *TMg = new TMultiGraph();
+
+    TMultiGraph *TpMg = new TMultiGraph();
+
+    TLegend *legend = new TLegend(0.6,0.65,0.88,0.85);
     legend->SetTextFont(132);
     legend->SetFillStyle(4000);
     legend->SetBorderSize(0);
@@ -249,7 +272,9 @@ int main (int argc, char** argv)
 
         t0 = 0.0, t1 = 10.0;
         
-        Gvec.push_back(new TGraph);
+        EpGvec.push_back(new TGraph);
+        TGvec.push_back(new TGraph);
+        TpGvec.push_back(new TGraph);
 
         printf("Iteracao %i\n", k+1);
 
@@ -260,7 +285,7 @@ int main (int argc, char** argv)
         parametros.Omega = (double)(O0+k*O1/divO);
 
         gsl_odeiv2_driver * d=
-            gsl_odeiv2_driver_alloc_y_new (&sys, gsl_odeiv2_step_rk8pd, 1e-6, 1e-6, 0.0);
+            gsl_odeiv2_driver_alloc_y_new (&sys, gsl_odeiv2_step_msbdf, 1e-6, 1e-6, 0.0);
 
         for (int i = 0; i < divtemp; i++)
         {
@@ -274,61 +299,130 @@ int main (int argc, char** argv)
                 break;
             }
 
-            printf ("%.5e %.5e %.5 %.5e\n", t0, y[5], y[6], y[8]);
+            // printf ("%.5e %.5e %.5e %.5e\n", t0, y[5], y[6], y[8]);
 
-            contpt = Gvec[k]->GetN();
+            eFile << t0 << "\t" << y[0] << "\t" << y[1] << "\t" << y[2] << "\t" << y[3] << "\t"
+                << y[4] << "\t" << y[5] << "\t" << y[6] << "\t" << y[7] << "\t" << y[8] << "\t" << y[9] << "\n";
 
-            Gvec[k]->SetPoint(contpt, t0, y[9]);
+            contpt = EpGvec[k]->GetN();
+
+            EpGvec[k]->SetPoint(contpt, t0, y[5]);
+            TGvec[k]->SetPoint(contpt, t0, y[6]);
+            TpGvec[k]->SetPoint(contpt, t0, y[8]);
 
         }
 
-        Gvec[k]->SetMarkerStyle(kFullCircle);
-        Gvec[k]->SetMarkerColor(((k+1)%10) ? k+1 : 1 );
-        Gvec[k]->SetMarkerSize(0.65);
+        EpGvec[k]->SetMarkerStyle(kFullCircle);
+        EpGvec[k]->SetMarkerColor(((k+1)%10) ? k+1 : 1 );
+        EpGvec[k]->SetMarkerSize(0.65);
 
-        MG->Add(Gvec[k]);
+        TGvec[k]->SetMarkerStyle(kFullCircle);
+        TGvec[k]->SetMarkerColor(((k+1)%10) ? k+1 : 1 );
+        TGvec[k]->SetMarkerSize(0.65);
+
+        TpGvec[k]->SetMarkerStyle(kFullCircle);
+        TpGvec[k]->SetMarkerColor(((k+1)%10) ? k+1 : 1 );
+        TpGvec[k]->SetMarkerSize(0.65);
+
+        EpMg->Add(EpGvec[k]);
+
+        TMg->Add(TGvec[k]);
+
+        TpMg->Add(TpGvec[k]);
 
         nome = "Omega ";
         nome = nome + (int)parametros.Omega;
         nomef = &nome[0];
 
-        legend->AddEntry(Gvec[k], nomef, "p");
+        legend->AddEntry(EpGvec[k], nomef, "p");
     
         gsl_odeiv2_driver_free (d);
 
     }
 
-    MG->GetXaxis()->SetLabelFont(132);
-    MG->GetXaxis()->SetTitleFont(132);
-    MG->GetYaxis()->SetLabelFont(132);
-    MG->GetYaxis()->SetTitleFont(132);
-    MG->GetYaxis()->SetLabelSize(0.035);
-    MG->GetYaxis()->SetTitleSize(0.035);
-    MG->GetXaxis()->SetLabelSize(0.035);
-    MG->GetXaxis()->SetTitleSize(0.035);
+    EpMg->GetXaxis()->SetLabelFont(132);
+    EpMg->GetXaxis()->SetTitleFont(132);
+    EpMg->GetYaxis()->SetLabelFont(132);
+    EpMg->GetYaxis()->SetTitleFont(132);
+    EpMg->GetYaxis()->SetLabelSize(0.035);
+    EpMg->GetYaxis()->SetTitleSize(0.035);
+    EpMg->GetXaxis()->SetLabelSize(0.035);
+    EpMg->GetXaxis()->SetTitleSize(0.035);
 
-    MG->GetXaxis()->SetLimits(0, t1);
-    MG->GetYaxis()->SetMaxDigits(2);
-    MG->GetXaxis()->SetTitle("Tempo #bf{[s]}");
-    MG->GetYaxis()->SetTitle("Epsilon #bf{[m]}");
-    Princ->cd();
-    MG->Draw("AP");
+    EpMg->GetXaxis()->SetLimits(0, t1);
+    EpMg->GetYaxis()->SetMaxDigits(2);
+    EpMg->GetXaxis()->SetTitle("Tempo #bf{[s]}");
+    EpMg->GetYaxis()->SetTitle("Epsilon #bf{[m]}");
+    EpCv->cd();
+    EpMg->Draw("AP");
     legend->SetY1(0.45);
     legend->SetY2(0.85);
     legend->SetX1(0.67);
     legend->SetX2(0.97);
     legend->Draw();
 
-    Princ->Print("Gp.pdf");
+    EpCv->Print("Epsilon.pdf");
 
-    while (!Gvec.empty())
+    TMg->GetXaxis()->SetLabelFont(132);
+    TMg->GetXaxis()->SetTitleFont(132);
+    TMg->GetYaxis()->SetLabelFont(132);
+    TMg->GetYaxis()->SetTitleFont(132);
+    TMg->GetYaxis()->SetLabelSize(0.035);
+    TMg->GetYaxis()->SetTitleSize(0.035);
+    TMg->GetXaxis()->SetLabelSize(0.035);
+    TMg->GetXaxis()->SetTitleSize(0.035);
+
+    TMg->GetXaxis()->SetLimits(0, t1);
+    TMg->GetYaxis()->SetMaxDigits(2);
+    TMg->GetXaxis()->SetTitle("Tempo #bf{[s]}");
+    TMg->GetYaxis()->SetTitle("Theta #bf{[rad]}");
+    TCv->cd();
+    TMg->Draw("AP");
+    legend->Draw();
+
+    TCv->Print("Theta.pdf");
+
+    TpMg->GetXaxis()->SetLabelFont(132);
+    TpMg->GetXaxis()->SetTitleFont(132);
+    TpMg->GetYaxis()->SetLabelFont(132);
+    TpMg->GetYaxis()->SetTitleFont(132);
+    TpMg->GetYaxis()->SetLabelSize(0.035);
+    TpMg->GetYaxis()->SetTitleSize(0.035);
+    TpMg->GetXaxis()->SetLabelSize(0.035);
+    TpMg->GetXaxis()->SetTitleSize(0.035);
+
+    TpMg->GetXaxis()->SetLimits(0, t1);
+    TpMg->GetYaxis()->SetMaxDigits(2);
+    TpMg->GetXaxis()->SetTitle("Tempo #bf{[s]}");
+    TpMg->GetYaxis()->SetTitle("Theta' #bf{[rad]}");
+    TpCv->cd();
+    TpMg->Draw("AP");
+    legend->Draw();
+
+    TpCv->Print("Theta'.pdf");
+
+    while (!EpGvec.empty())
     {
-        TGraph* f = Gvec.back();
-        Gvec.pop_back();
+        TGraph* f = EpGvec.back();
+        EpGvec.pop_back();
         delete f;
     }
 
-    delete MG, Princ;
+    while (!TGvec.empty())
+    {
+        TGraph* f = TGvec.back();
+        TGvec.pop_back();
+        delete f;
+    }
+
+    while (!TpGvec.empty())
+    {
+        TGraph* f = TpGvec.back();
+        TpGvec.pop_back();
+        delete f;
+    }
+
+    delete EpMg, TMg, TpMg, EpCv, TCv, TpCv;
 
     return 0;
 }
