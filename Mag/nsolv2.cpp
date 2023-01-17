@@ -127,6 +127,8 @@ int func (double t, const double y[], double f[],
     f[8] = y[3]; 
     f[9] = y[4]; 
 
+    // f[1] = 0; f[2] = 0; f[6] = 0; f[7] = 0;
+
     return GSL_SUCCESS;
 }
 
@@ -370,10 +372,11 @@ int main (int argc, char** argv)
     
     int divO = 1, contpt; // NÚMERO DE ITERAÇÕES À SEREM RODADAS ALTERANDO ALGUM PARÂMETRO, 
                         // VARIÁVEL INTERNA DO ROOT
-    double O0 = 1.0, O1 = 10; // VALOR DO PARÂMETRO INICIAL, VALOR FINAL
+    double O0 = 0.0, O1 = 10000.0*2*TMath::Pi()/60; // VALOR DO PARÂMETRO INICIAL, VALOR FINAL
 
     std::string nome; // DEFINIÇÕES PARA ARQUIVO .TSV
-    char * nomef;
+    std::string arq[5];
+    char * nomef, *arq_f[5];
 
     std::ofstream ofs;
     ofs.open("Data.tsv", std::ofstream::out | std::ofstream::trunc);
@@ -391,20 +394,20 @@ int main (int argc, char** argv)
                                 0.2375, // m
                                 0.2375, // mp
                                 1.0, // m'B
-                                10.0 // Omega
+                                684.0 // Omega
     }; 
 
     // VALOR INICIAL DE CADA VARIÁVEL
 
     const double initval[10] = {0.0, // r ponto
                                 0.0, // theta ponto
-                                0.0, // phi ponto
+                                5805*2*TMath::Pi()/60, // phi ponto
                                 0.0, // theta' ponto
-                                740.0, // phi' ponto
+                                5805*2*TMath::Pi()/60, // phi' ponto
                                 0.02, // r
-                                3.14, // theta
+                                3.073, // theta
                                 0.0, // phi
-                                12*TMath::Pi()/180, // theta' 
+                                4.442, // theta' 
                                 0.0 // phi'
     };
 
@@ -468,7 +471,27 @@ int main (int argc, char** argv)
 
         for (int l = 0; l< 10; l++){y[l]=initval[l];};
 
-        parametros.mb = O0 + k*O1/divO; // CASO FOREM SIMULADAS MAIS DE UMA ITERAÇÃO É NECESSÁRIO
+        //parametros.omega = O0 + k*O1/divO; // CASO FOREM SIMULADAS MAIS DE UMA ITERAÇÃO É NECESSÁRIO
+
+        arq[0] = "Raio_";
+        arq[0] = arq[0] + (int)parametros.Omega;
+        arq_f[0] = &arq[0][0];
+
+        arq[1] = "Phi_";
+        arq[1] = arq[1] + (int)parametros.Omega;
+        arq_f[1] = &arq[1][0];
+
+        arq[2] = "Theta_";
+        arq[2] = arq[2] + (int)parametros.Omega;
+        arq_f[2] = &arq[2][0];
+
+        arq[3] = "Phip_";
+        arq[3] = arq[3] + (int)parametros.Omega;
+        arq_f[3] = &arq[3][0];
+
+        arq[4] = "Thetap_";
+        arq[4] = arq[4] + (int)parametros.Omega;
+        arq_f[4] = &arq[4][0];
 
         gsl_odeiv2_driver * d=
             gsl_odeiv2_driver_alloc_y_new (&sys, gsl_odeiv2_step_msbdf, 1e-6, 1e-6, 0.0);

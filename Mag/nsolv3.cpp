@@ -14,6 +14,8 @@
 #include "vector"
 #include <TLegend.h>
 
+double tau = 1.0;
+
 struct p_type {
     double A;
     double B;
@@ -59,13 +61,16 @@ int func (double t, const double y[], double f[],
                     +TMath::Cos(y[6])*TMath::Cos(y[8])*TMath::Sin(y[7]-F*t)/TMath::Sin(y[6]))/(TMath::Power(y[5],5)); 
                     // -3*A*\qty(\sin\theta'\cos\qty(2\phi-\phi'-Ft)
                     //+\cot\theta\cos\theta'\sin\qty(\phi-Ft))/r^5
-    f[3] = -C*TMath::Sin(y[8])*y[4] // \ddot{\theta'}
-                +TMath::Sin(2*y[8])*y[4]*y[4]/2
-                -E*TMath::Sin(y[8])
+    f[3] = -C*TMath::Sin(y[8])*y[4] // \ddot{\theta'} = -C*\sin\qty(\theta')*\dot{\phi'}
+                +TMath::Sin(2*y[8])*y[4]*y[4]/2 // \qty{\dot{\phi'}}^2*\sin\qty(2*\theta')
+                -E*TMath::Sin(y[8]) // -E*\sin\qty(\theta')
                 +(D/(TMath::Power(y[5],3)))
                     *(3*TMath::Power(TMath::Sin(y[6]),2)*TMath::Cos(y[8])*TMath::Cos(y[7]-F*t)*TMath::Sin(y[9]-y[7])
                     -TMath::Cos(y[8])*TMath::Sin(y[9]-F*t)
                     -3*TMath::Sin(y[6])*TMath::Cos(y[6])*TMath::Sin(y[8])*TMath::Cos(y[7]-F*t));
+                    // +\frac{D}{r^3}\qty(3\sin^2\qty(theta)*\cos\theta'*\cos\qty(\phi-F*t)*\sin\qty(\phi'-\phi)
+                    // -\cos\qty(\theta')*\sin\qty(\phi'-Ft)
+                    // -3*
     f[4] = C*y[3]/(TMath::Sin(y[8]))
                 -2*y[4]*TMath::Cos(y[8])*y[3]/TMath::Sin(y[8])
                 +(D/(TMath::Power(y[5],3)*TMath::Power(TMath::Sin(y[8]),2)))
@@ -299,8 +304,8 @@ int jac (double t, const double y[], double *dfdy,
 int main (int argc, char** argv)
 {
 
-    double t0 = 0.0, t1 = 5, O0 = 1.0, O1 = 1.0, y[10], ti;
-    int divtemp = 1000, divO = 1, contpt, status;
+    double t0 = 0.0, t1 = 10.0, O0 = 1.0, O1 = 1.0, y[10], ti;
+    int divtemp = 5000, divO = 1, contpt, status;
 
     std::string nome;
     char * nomef;
@@ -314,25 +319,25 @@ int main (int argc, char** argv)
                                 1.0, // B
                                 1.0, // C
                                 1.0, // D
-                                0.0, // E
+                                1.0, // E
                                 1.0, // F
     }; 
 
     const double initval[10] = {0.0, // r ponto
                                 0.0, // theta ponto
-                                0.0, // phi ponto
+                                1.0, // phi ponto
                                 0.0, // theta' ponto
-                                0.0, // phi' ponto
-                                0.015, // r
-                                3.14, // theta
+                                1.0, // phi' ponto
+                                1.0, // r
+                                3.073, // theta
                                 0.0, // phi
-                                0.0001, // theta' 
-                                0.0 // phi'
+                                4.442, // theta' 
+                                3.1415/2 // phi'
     };
 
     gsl_odeiv2_system sys = {func, jac, 10, &parametros};   
 
-    std::vector<TGraph*> EpGvec, TGvec, TpGvec;
+    std::vector<TGraph*> EpGvec, TGvec, TpGvec, PGvec, PpGvec;
 
     // TGraph * teste = new TGraph();
 
@@ -357,9 +362,25 @@ int main (int argc, char** argv)
     TpCv->SetGridx();
     TpCv->SetGridy();
 
+    TCanvas *PCv = new TCanvas();
+
+    PCv->SetTickx();
+    PCv->SetTicky();
+    PCv->SetGridx();
+    PCv->SetGridy();
+
+    TCanvas *PpCv = new TCanvas();
+
+    PpCv->SetTickx();
+    PpCv->SetTicky();
+    PpCv->SetGridx();
+    PpCv->SetGridy();
+
     TMultiGraph *EpMg = new TMultiGraph();
     TMultiGraph *TMg = new TMultiGraph();
     TMultiGraph *TpMg = new TMultiGraph();
+    TMultiGraph *PMg = new TMultiGraph();
+    TMultiGraph *PpMg = new TMultiGraph();
 
     TLegend *legend = new TLegend(0.6,0.65,0.88,0.85);
     legend->SetTextFont(132);
@@ -371,11 +392,13 @@ int main (int argc, char** argv)
     for(int k = 0; k < divO; k++)
     {
 
-        t0 = 0.0, t1 = 5;
+        t0 = 0.0, t1 = 10;
         
         EpGvec.push_back(new TGraph);
         TGvec.push_back(new TGraph);
         TpGvec.push_back(new TGraph);
+        PGvec.push_back(new TGraph);
+        PpGvec.push_back(new TGraph);
 
         printf("Iteracao %i\n", k+1);
 
@@ -410,7 +433,9 @@ int main (int argc, char** argv)
             EpGvec[k]->SetPoint(contpt, t0, y[5]);
             // teste->SetPoint(contpt, t0, 9.8*t0*t0/2);
             TGvec[k]->SetPoint(contpt, t0, y[6]);
+            PGvec[k]->SetPoint(contpt, t0, y[7]);
             TpGvec[k]->SetPoint(contpt, t0, y[8]);
+            PpGvec[k]->SetPoint(contpt, t0, y[9]);
 
         }
 
@@ -426,14 +451,26 @@ int main (int argc, char** argv)
         TGvec[k]->SetMarkerColor(((k+1)%10) ? k+1 : 1 );
         TGvec[k]->SetMarkerSize(0.65);
 
+        PGvec[k]->SetMarkerStyle(kFullCircle);
+        PGvec[k]->SetMarkerColor(((k+1)%10) ? k+1 : 1 );
+        PGvec[k]->SetMarkerSize(0.65);
+
         TpGvec[k]->SetMarkerStyle(kFullCircle);
         TpGvec[k]->SetMarkerColor(((k+1)%10) ? k+1 : 1 );
         TpGvec[k]->SetMarkerSize(0.65);
 
+        PpGvec[k]->SetMarkerStyle(kFullCircle);
+        PpGvec[k]->SetMarkerColor(((k+1)%10) ? k+1 : 1 );
+        PpGvec[k]->SetMarkerSize(0.65);
+
         EpMg->Add(EpGvec[k]);
         // EpMg->Add(teste);
 
+        PMg->Add(PGvec[k]);
+
         TMg->Add(TGvec[k]);
+
+        PpMg->Add(PpGvec[k]);
 
         TpMg->Add(TpGvec[k]);
 
@@ -458,8 +495,8 @@ int main (int argc, char** argv)
 
     EpMg->GetXaxis()->SetLimits(0, t1);
     EpMg->GetYaxis()->SetMaxDigits(2);
-    EpMg->GetXaxis()->SetTitle("Tempo #bf{[s]}");
-    EpMg->GetYaxis()->SetTitle("Distancia #bf{[m]}");
+    EpMg->GetXaxis()->SetTitle("Tempo #bf{[u.a.]}");
+    EpMg->GetYaxis()->SetTitle("Distancia #bf{[u.a.]}");
     EpCv->cd();
     EpMg->Draw("AP");
     legend->SetY1(0.45);
@@ -481,13 +518,32 @@ int main (int argc, char** argv)
 
     TMg->GetXaxis()->SetLimits(0, t1);
     TMg->GetYaxis()->SetMaxDigits(2);
-    TMg->GetXaxis()->SetTitle("Tempo #bf{[s]}");
+    TMg->GetXaxis()->SetTitle("Tempo #bf{[u.a.]}");
     TMg->GetYaxis()->SetTitle("Theta #bf{[rad]}");
     TCv->cd();
     TMg->Draw("AP");
     legend->Draw();
 
     TCv->Print("Theta.pdf");
+
+    PMg->GetXaxis()->SetLabelFont(132);
+    PMg->GetXaxis()->SetTitleFont(132);
+    PMg->GetYaxis()->SetLabelFont(132);
+    PMg->GetYaxis()->SetTitleFont(132);
+    PMg->GetYaxis()->SetLabelSize(0.035);
+    PMg->GetYaxis()->SetTitleSize(0.035);
+    PMg->GetXaxis()->SetLabelSize(0.035);
+    PMg->GetXaxis()->SetTitleSize(0.035);
+
+    PMg->GetXaxis()->SetLimits(0, t1);
+    PMg->GetYaxis()->SetMaxDigits(2);
+    PMg->GetXaxis()->SetTitle("Tempo #bf{[u.a.]}");
+    PMg->GetYaxis()->SetTitle("Phi #bf{[rad]}");
+    PCv->cd();
+    PMg->Draw("AP");
+    legend->Draw();
+
+    PCv->Print("Phi.pdf");
 
     TpMg->GetXaxis()->SetLabelFont(132);
     TpMg->GetXaxis()->SetTitleFont(132);
@@ -500,13 +556,32 @@ int main (int argc, char** argv)
 
     TpMg->GetXaxis()->SetLimits(0, t1);
     TpMg->GetYaxis()->SetMaxDigits(2);
-    TpMg->GetXaxis()->SetTitle("Tempo #bf{[s]}");
+    TpMg->GetXaxis()->SetTitle("Tempo #bf{[u.a.]}");
     TpMg->GetYaxis()->SetTitle("Theta' #bf{[rad]}");
     TpCv->cd();
     TpMg->Draw("AP");
     legend->Draw();
 
     TpCv->Print("Theta'.pdf");
+
+    PpMg->GetXaxis()->SetLabelFont(132);
+    PpMg->GetXaxis()->SetTitleFont(132);
+    PpMg->GetYaxis()->SetLabelFont(132);
+    PpMg->GetYaxis()->SetTitleFont(132);
+    PpMg->GetYaxis()->SetLabelSize(0.035);
+    PpMg->GetYaxis()->SetTitleSize(0.035);
+    PpMg->GetXaxis()->SetLabelSize(0.035);
+    PpMg->GetXaxis()->SetTitleSize(0.035);
+
+    PpMg->GetXaxis()->SetLimits(0, t1);
+    PpMg->GetYaxis()->SetMaxDigits(2);
+    PpMg->GetXaxis()->SetTitle("Tempo #bf{[u.a.]}");
+    PpMg->GetYaxis()->SetTitle("Phi' #bf{[rad]}");
+    PpCv->cd();
+    PpMg->Draw("AP");
+    legend->Draw();
+
+    PpCv->Print("Phi'.pdf");
 
     while (!EpGvec.empty())
     {
@@ -529,7 +604,7 @@ int main (int argc, char** argv)
         delete f;
     }
 
-    delete EpMg, TMg, TpMg, EpCv, TCv, TpCv;
+    delete EpMg, TMg, TpMg, EpCv, TCv, TpCv, PCv, PpCv, PMg, PpMg;
 
     return 0;
 }
